@@ -1,0 +1,103 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
+
+data = {
+    "email": [
+        "free money win prize", "win cash click now",
+        "free offer claim reward", "you won a free gift",
+        "urgent claim prize", "limited time free bonus",
+        "win cash today", "free money offer",
+        "meeting tomorrow", "send project report",
+        "project meeting today", "review the report",
+        "appointment confirmed", "team meeting at 10",
+        "send the document", "project deadline tomorrow"
+    ],
+    "label": [1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0]
+}
+
+df = pd.DataFrame(data)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    df.email, df.label, test_size=0.30,
+    random_state=42, stratify=df.label
+)
+
+vectorizer = TfidfVectorizer(
+    stop_words="english",
+    ngram_range=(1,2)
+)
+
+X_train = vectorizer.fit_transform(X_train)
+X_test = vectorizer.transform(X_test)
+
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+prob = model.predict_proba(X_test)[:,1]
+pred = (prob >= 0.50).astype(int)
+
+print("Original Accuracy:", accuracy_score(y_test,pred))
+print("Original Precision:", precision_score(y_test,pred,zero_division=0))
+print("Original Recall:", recall_score(y_test,pred,zero_division=0))
+print("Original F1:", f1_score(y_test,pred,zero_division=0))
+
+errors = pd.DataFrame({
+    "Email": X_test,
+    "Actual": y_test.values,
+    "Predicted": pred,
+    "Probability": prob
+})
+
+print("\nMisclassified Emails:")
+print(errors[errors.Actual != errors.Predicted])
+
+ConfusionMatrixDisplay.from_predictions(
+    y_test, pred,
+    display_labels=["Not Spam","Spam"]
+)
+plt.title("Original Model")
+plt.show()
+
+threshold = 0.35
+pred_threshold = (prob >= threshold).astype(int)
+
+print("\nThreshold Accuracy:",
+      accuracy_score(y_test,pred_threshold))
+print("Threshold Recall:",
+      recall_score(y_test,pred_threshold,zero_division=0))
+
+balanced = LogisticRegression(
+    max_iter=1000,
+    class_weight="balanced"
+)
+
+balanced.fit(X_train,y_train)
+
+balanced_prob = balanced.predict_proba(X_test)[:,1]
+balanced_pred = (balanced_prob >= 0.35).astype(int)
+
+print("\nOptimized Accuracy:",
+      accuracy_score(y_test,balanced_pred))
+print("Optimized Precision:",
+      precision_score(y_test,balanced_pred,zero_division=0))
+print("Optimized Recall:",
+      recall_score(y_test,balanced_pred,zero_division=0))
+print("Optimized F1:",
+      f1_score(y_test,balanced_pred,zero_division=0))
+
+ConfusionMatrixDisplay.from_predictions(
+    y_test, balanced_pred,
+    display_labels=["Not Spam","Spam"]
+)
+plt.title("Balanced + Threshold Optimized")
+plt.show()
+
+features = vectorizer.get_feature_names_out()
+coef = balanced.coef_[0]
+
+print("\nImportant Spam Features:")
+print(sorted(zip(features,coef), key=lambda x:x[1], reverse=True)[:10])
