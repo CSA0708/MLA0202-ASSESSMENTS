@@ -1,0 +1,56 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, confusion_matrix
+data = {
+    "email": [
+        "free money win prize",
+        "free prize claim",
+        "win free cash",
+        "claim free reward",
+        "free lottery winner",
+        "win cash prize",
+        "free offer money",
+        "claim cash reward",
+        "team meeting tomorrow",
+        "project meeting today",
+        "send project report",
+        "review project report",
+        "meeting at office",
+        "project deadline tomorrow",
+        "send the document",
+        "team discussion today"
+    ],
+    "label": [1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0]
+}
+df = pd.DataFrame(data)
+X_train, X_test, y_train, y_test = train_test_split(
+    df["email"], df["label"],
+    test_size=0.25,
+    random_state=42,
+    stratify=df["label"]
+)
+vectorizer = CountVectorizer()
+X_train = vectorizer.fit_transform(X_train)
+X_test = vectorizer.transform(X_test)
+model1 = MultinomialNB(alpha=0.0001)
+model1.fit(X_train, y_train)
+pred1 = model1.predict(X_test)
+print("Without Smoothing")
+print("Accuracy:", accuracy_score(y_test, pred1))
+print("Confusion Matrix:\n", confusion_matrix(y_test, pred1))
+model2 = MultinomialNB(alpha=1.0)
+model2.fit(X_train, y_train)
+pred2 = model2.predict(X_test)
+print("\nWith Laplace Smoothing")
+print("Accuracy:", accuracy_score(y_test, pred2))
+print("Confusion Matrix:\n", confusion_matrix(y_test, pred2))
+for alpha in [0.1, 0.5, 1, 2]:
+    model = MultinomialNB(alpha=alpha)
+    model.fit(X_train, y_train)
+    pred = model.predict(X_test)
+    print(
+        "Alpha:", alpha,
+        "Accuracy:", accuracy_score(y_test, pred)
+    )
