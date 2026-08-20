@@ -1,1 +1,105 @@
+import numpy as np
+from pgmpy.models import DiscreteBayesianNetwork
+from pgmpy.factors.discrete import TabularCPD
+from pgmpy.inference import VariableElimination
 
+model = DiscreteBayesianNetwork([
+    ("Location", "Fraud"),
+    ("LoginDevice", "Fraud"),
+    ("PreviousFraud", "Fraud"),
+    ("TransactionAmount", "Fraud")
+])
+
+cpd_location = TabularCPD(
+    variable="Location",
+    variable_card=2,
+    values=[[0.75], [0.25]]
+)
+
+cpd_device = TabularCPD(
+    variable="LoginDevice",
+    variable_card=2,
+    values=[[0.80], [0.20]]
+)
+
+cpd_previous = TabularCPD(
+    variable="PreviousFraud",
+    variable_card=2,
+    values=[[0.90], [0.10]]
+)
+
+cpd_amount = TabularCPD(
+    variable="TransactionAmount",
+    variable_card=2,
+    values=[[0.70], [0.30]]
+)
+
+cpd_fraud = TabularCPD(
+    variable="Fraud",
+    variable_card=2,
+    values=[
+        [0.99, 0.95, 0.90, 0.80,
+         0.95, 0.85, 0.75, 0.60,
+         0.90, 0.80, 0.65, 0.50,
+         0.80, 0.65, 0.45, 0.25],
+        [0.01, 0.05, 0.10, 0.20,
+         0.05, 0.15, 0.25, 0.40,
+         0.10, 0.20, 0.35, 0.50,
+         0.20, 0.35, 0.55, 0.75]
+    ],
+    evidence=[
+        "Location",
+        "LoginDevice",
+        "PreviousFraud",
+        "TransactionAmount"
+    ],
+    evidence_card=[2, 2, 2, 2]
+)
+
+model.add_cpds(
+    cpd_location,
+    cpd_device,
+    cpd_previous,
+    cpd_amount,
+    cpd_fraud
+)
+
+print("Model Valid:", model.check_model())
+
+inference = VariableElimination(model)
+
+result = inference.query(
+    variables=["Fraud"],
+    evidence={
+        "Location": 1,
+        "LoginDevice": 1,
+        "PreviousFraud": 1,
+        "TransactionAmount": 1
+    }
+)
+
+print("\nFraud Probability:")
+print(result)
+
+fraud_probability = result.values[1]
+
+print("\nProbability of Fraud:",
+      round(fraud_probability * 100, 2), "%")
+
+if fraud_probability >= 0.5:
+    print("Prediction: FRAUDULENT TRANSACTION")
+else:
+    print("Prediction: LEGITIMATE TRANSACTION")
+
+normal_result = inference.query(
+    variables=["Fraud"],
+    evidence={
+        "Location": 0,
+        "LoginDevice": 0,
+        "PreviousFraud": 0,
+        "TransactionAmount": 0
+    }
+)
+
+print("\nNormal Transaction Fraud Probability:",
+      round(normal_result.values[1] * 100, 2), "%")
