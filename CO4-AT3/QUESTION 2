@@ -1,0 +1,44 @@
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from hmmlearn import hmm
+np.random.seed(42)
+X = np.array([
+    [1], [2], [1], [3], [4], [5],
+    [4], [3], [2], [1], [2], [3],
+    [5], [4], [5], [6], [5], [4]
+])
+y = np.array([
+    0, 0, 0, 1, 1, 1,
+    1, 1, 0, 0, 0, 1,
+    1, 1, 1, 0, 0, 0
+])
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+model = hmm.GaussianHMM(
+    n_components=2,
+    covariance_type="diag",
+    n_iter=100,
+    random_state=42
+)
+model.fit(X_train)
+predicted_states = model.predict(X_test)
+if len(np.unique(predicted_states)) == 2:
+    mapping = {}
+    for state in np.unique(predicted_states):
+        values = y_test[predicted_states == state]
+        if len(values) > 0:
+            mapping[state] = round(np.mean(values))
+    predicted_labels = np.array([
+        mapping.get(state, 0) for state in predicted_states
+    ])
+else:
+    predicted_labels = predicted_states
+accuracy = accuracy_score(y_test, predicted_labels)
+print("HMM Predicted States:", predicted_states)
+print("Actual Labels:", y_test)
+print("Accuracy:", accuracy)
+observations = np.array([[2], [3], [4], [5], [4], [3]])
+future_states = model.predict(observations)
+print("Activity Recognition States:", future_states)
