@@ -1,0 +1,65 @@
+import numpy as np
+import networkx as nx
+from pgmpy.models import DiscreteBayesianNetwork
+from pgmpy.factors.discrete import TabularCPD
+from pgmpy.inference import VariableElimination
+model = DiscreteBayesianNetwork([
+    ('Disease', 'Fever'),
+    ('Disease', 'Cough'),
+    ('Disease', 'Fatigue')
+])
+cpd_disease = TabularCPD(
+    variable='Disease',
+    variable_card=2,
+    values=[[0.6], [0.4]],
+    state_names={'Disease': ['Flu', 'Pneumonia']}
+)
+cpd_fever = TabularCPD(
+    variable='Fever',
+    variable_card=2,
+    values=[[0.8, 0.3], [0.2, 0.7]],
+    evidence=['Disease'],
+    evidence_card=[2],
+    state_names={
+        'Fever': ['No', 'Yes'],
+        'Disease': ['Flu', 'Pneumonia']
+    }
+)
+cpd_cough = TabularCPD(
+    variable='Cough',
+    variable_card=2,
+    values=[[0.4, 0.2], [0.6, 0.8]],
+    evidence=['Disease'],
+    evidence_card=[2],
+    state_names={
+        'Cough': ['No', 'Yes'],
+        'Disease': ['Flu', 'Pneumonia']
+    }
+)
+cpd_fatigue = TabularCPD(
+    variable='Fatigue',
+    variable_card=2,
+    values=[[0.5, 0.2], [0.5, 0.8]],
+    evidence=['Disease'],
+    evidence_card=[2],
+    state_names={
+        'Fatigue': ['No', 'Yes'],
+        'Disease': ['Flu', 'Pneumonia']
+    }
+)
+model.add_cpds(cpd_disease, cpd_fever, cpd_cough, cpd_fatigue)
+print(model.check_model())
+inference = VariableElimination(model)
+result = inference.query(
+    variables=['Disease'],
+    evidence={'Fever': 'Yes', 'Cough': 'Yes'}
+)
+print(result)
+G = nx.DiGraph()
+G.add_edges_from([
+    ('Disease', 'Fever'),
+    ('Disease', 'Cough'),
+    ('Disease', 'Fatigue')
+])
+print("Bayesian Network Nodes:", list(G.nodes()))
+print("Bayesian Network Edges:", list(G.edges()))
