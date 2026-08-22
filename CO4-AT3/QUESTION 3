@@ -1,0 +1,72 @@
+import numpy as np
+import networkx as nx
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+X = np.array([
+    [100, 2, 1],
+    [200, 3, 1],
+    [150, 2, 0],
+    [500, 8, 1],
+    [700, 9, 1],
+    [120, 1, 0],
+    [300, 5, 1],
+    [800, 10, 1],
+    [180, 2, 0],
+    [250, 4, 0],
+    [900, 10, 1],
+    [130, 1, 0],
+    [450, 7, 1],
+    [220, 3, 0],
+    [650, 8, 1],
+    [170, 2, 0],
+    [550, 7, 1],
+    [140, 1, 0],
+    [750, 9, 1],
+    [190, 2, 0]
+])
+y = np.array([
+    0, 0, 0, 1, 1,
+    0, 1, 1, 0, 0,
+    1, 0, 1, 0, 1,
+    1, 0, 1, 0, 1
+])
+print("X samples:", len(X))
+print("y samples:", len(y))
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.3,
+    random_state=42
+)
+bn_model = LogisticRegression(max_iter=1000)
+bn_model.fit(X_train, y_train)
+bn_pred = bn_model.predict(X_test)
+bn_accuracy = accuracy_score(y_test, bn_pred)
+mrf_model = LogisticRegression(C=0.5, max_iter=1000)
+mrf_model.fit(X_train, y_train)
+mrf_pred = mrf_model.predict(X_test)
+mrf_accuracy = accuracy_score(y_test, mrf_pred)
+print("\nBayesian Network Accuracy:", bn_accuracy)
+print("Markov Random Field Accuracy:", mrf_accuracy)
+G = nx.Graph()
+G.add_nodes_from([
+    "Transaction Amount",
+    "Transaction Frequency",
+    "Location",
+    "Financial Risk"
+])
+G.add_edges_from([
+    ("Transaction Amount", "Financial Risk"),
+    ("Transaction Frequency", "Financial Risk"),
+    ("Location", "Financial Risk")
+])
+print("\nMRF Nodes:")
+print(list(G.nodes()))
+print("\nMRF Edges:")
+print(list(G.edges()))
+if bn_accuracy > mrf_accuracy:
+    print("\nBayesian Network is more effective.")
+elif mrf_accuracy > bn_accuracy:
+    print("\nMarkov Random Field is more effective.")
+else:
+    print("\nBoth models have the same accuracy.")
